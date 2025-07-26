@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>格闘タイピングゲーム</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #111;
+      color: white;
+      font-family: sans-serif;
+      text-align: center;
+    }
+
+    h1 { margin-top: 20px; }
+
+    #info {
+      margin: 10px 0;
+      font-size: 18px;
+    }
+
+    #game-container {
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      height: 250px;
+      margin: 20px 0;
+      position: relative;
+    }
+
+    .fighter {
+      width: 100px;
+      height: 180px;
+      background: #444;
+      margin: 0 40px;
+      border-radius: 20px;
+      position: relative;
+      transition: transform 0.3s ease;
+    }
+
+    .fighter.dead {
+      filter: grayscale(100%) brightness(0.5);
+    }
+
+    .face {
+      width: 70px;
+      height: 70px;
+      background: #fbc;
+      border-radius: 50%;
+      margin: 15px auto 0;
+      position: relative;
+    }
+
+    .eye {
+      width: 10px;
+      height: 10px;
+      background: #000;
+      border-radius: 50%;
+      position: absolute;
+      top: 25px;
+    }
+
+    .eye.left { left: 15px; }
+    .eye.right { right: 15px; }
+
+    .arm, .enemy-arm {
+      width: 20px;
+      height: 60px;
+      background: #a52a2a;
+      position: absolute;
+      top: 70px;
+      border-radius: 10px;
+      transform-origin: top center;
+    }
+
+    .arm { left: 0; }
+    .enemy-arm { right: 0; }
+
+    @keyframes punch {
+      0% { transform: rotate(0deg) translateX(0); }
+      50% { transform: rotate(-20deg) translateX(30px); }
+      100% { transform: rotate(0deg) translateX(0); }
+    }
+
+    .player-attack .arm {
+      animation: punch 0.4s ease;
+    }
+
+    #word {
+      font-size: 36px;
+      margin: 20px 0;
+      color: #6f6;
+    }
+
+    input {
+      font-size: 24px;
+      padding: 10px;
+      width: 300px;
+      text-align: center;
+    }
+
+    #result {
+      margin-top: 20px;
+      font-size: 24px;
+      color: #ff0;
+    }
+
+    #startBtn {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 18px;
+    }
+
+    #score-board {
+      margin: 10px;
+      font-size: 18px;
+      color: #ccc;
+    }
+  </style>
+</head>
+<body>
+
+<h1>格闘タイピングゲーム</h1>
+
+<div id="info">
+  時間: <span id="timer">60</span>秒
+</div>
+
+<div id="score-board">
+  スコア: <span id="score">0</span> |
+  ハイスコア: <span id="highscore">0</span>
+</div>
+
+<div id="game-container">
+  <div id="player" class="fighter">
+    <div class="face">
+      <div class="eye left"></div>
+      <div class="eye right"></div>
+    </div>
+    <div class="arm"></div>
+  </div>
+  <div id="enemy" class="fighter">
+    <div class="face">
+      <div class="eye left"></div>
+      <div class="eye right"></div>
+    </div>
+    <div class="enemy-arm"></div>
+  </div>
+</div>
+
+<div id="word">スペースキーかボタンでスタート！</div>
+<input type="text" id="input" disabled />
+<div id="result"></div>
+<button id="startBtn">スタート</button>
+
+<script>
+  const words = [
+    "こんにちは", "ありがとう", "さようなら", "すみません", "おはよう", "がんばって", "たのしい", "ねこ", "いぬ", "すし",
+    "やまだ", "たなか", "ほん", "みず", "きょう", "せんせい", "がくせい", "でんわ", "じてんしゃ", "くるま",
+    "ほんや", "とけい", "おかね", "くだもの", "やさい", "ごはん", "みそしる", "ラーメン", "カレー", "サッカー",
+    "バスケット", "テニス", "えいが", "おんがく", "ゲーム", "ともだち", "きょうだい", "かぞく", "がっこう", "がいこく",
+    "にほん", "せかい", "そら", "うみ", "やま", "かわ", "はな", "き", "どうぶつ", "とり", "さかな", "かえる", "へび",
+    "くま", "ぞう", "らいおん", "とら", "うし", "ぶた", "にわとり", "たまご", "パン", "ジュース", "みかん", "りんご",
+    "バナナ", "ぶどう", "もも", "すいか", "なし", "いちご", "さくらんぼ", "かき", "かぼちゃ", "にんじん", "たまねぎ",
+    "じゃがいも", "トマト", "キャベツ", "レタス", "きゅうり", "なす", "ピーマン", "コーン", "とうもろこし", "ほうれんそう",
+    "にら", "しょうが", "にんにく", "さとう", "しお", "こしょう", "しょうゆ", "みりん", "とりにく", "ぶたにく", "ぎゅうにく"
+  ];
+
+  const input = document.getElementById('input');
+  const wordElem = document.getElementById('word');
+  const timerElem = document.getElementById('timer');
+  const scoreElem = document.getElementById('score');
+  const resultElem = document.getElementById('result');
+  const startBtn = document.getElementById('startBtn');
+  const player = document.getElementById('player');
+  const enemy = document.getElementById('enemy');
+  const highscoreElem = document.getElementById('highscore');
+
+  let currentWord = '';
+  let score = 0;
+  let timeLeft = 60;
+  let timer;
+  let enemyHP = 100;
+  let highscore = parseInt(localStorage.getItem('highscore') || "0");
+
+  highscoreElem.textContent = highscore;
+
+  function pickWord() {
+    return words[Math.floor(Math.random() * words.length)];
+  }
+
+  function updateWord() {
+    currentWord = pickWord();
+    wordElem.textContent = currentWord;
+  }
+
+  function startGame() {
+    score = 0;
+    timeLeft = 60;
+    enemyHP = 100;
+    enemy.classList.remove('dead');
+    input.disabled = false;
+    input.value = '';
+    input.focus();
+    startBtn.disabled = true;
+    scoreElem.textContent = score;
+    timerElem.textContent = timeLeft;
+    resultElem.textContent = '';
+    updateWord();
+
+    timer = setInterval(() => {
+      timeLeft--;
+      timerElem.textContent = timeLeft;
+      if (timeLeft <= 0) {
+        clearInterval(timer);
+        input.disabled = true;
+        startBtn.disabled = false;
+
+        if (enemyHP <= 0) {
+          resultElem.textContent = `🎉 クリア！倒した！スコア: ${score}`;
+        } else {
+          resultElem.textContent = `💀 タイムアップ！敵が生き残った…スコア: ${score}`;
+        }
+
+        if (score > highscore) {
+          highscore = score;
+          localStorage.setItem('highscore', highscore);
+          highscoreElem.textContent = highscore;
+        }
+      }
+    }, 1000);
+  }
+
+  function onCorrectInput() {
+    score++;
+    scoreElem.textContent = score;
+
+    player.classList.add('player-attack');
+
+    if (enemyHP > 0) {
+      enemyHP -= 10;
+      if (enemyHP <= 0) {
+        enemy.classList.add('dead');
+      }
+    }
+
+    setTimeout(() => {
+      player.classList.remove('player-attack');
+    }, 400);
+
+    setTimeout(() => {
+      input.value = '';
+      updateWord();
+    }, 400);
+  }
+
+  input.addEventListener('input', () => {
+    if (input.value === currentWord) {
+      onCorrectInput();
+    }
+  });
+
+  startBtn.addEventListener('click', startGame);
+
+  // スペースキーでゲーム開始
+  document.addEventListener('keydown', (e) => {
+    if ((e.code === "Space" || e.key === " ") && !startBtn.disabled) {
+      e.preventDefault(); // スクロール防止
+      startGame();
+    }
+  });
+</script>
+
+</body>
+</html>
